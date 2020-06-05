@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "dev": "http-server public"
+  },
+  "devDependencies": {
+    "http-server": "^0.12.3"
+  }
+}
