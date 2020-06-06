@@ -1,0 +1,16 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: yellow;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+canvas {
+  margin: auto;
+  margin-top: 80px;
+  display: block;
+}
