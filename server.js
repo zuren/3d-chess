@@ -50,12 +50,13 @@ io.on("connection", socket => {
 
   socket.on("room:subscribe", msg => {
     username = msg.username
+    userId = msg.userId
 
     socketRooms.push(msg.roomId)
     subscriptions[msg.roomId] = subscriptions[msg.roomId] || []
     subscriptions[msg.roomId].push(socket)
     subscriptions[msg.roomId].forEach(s => {
-      s.emit("room:event", { roomId: msg.roomId, type: "USER_JOINED", username })
+      s.emit("room:event", { roomId: msg.roomId, type: "USER_JOINED", username, userId })
       s.emit("room:event", { roomId: msg.roomId, type: "USER_COUNT", count: subscriptions[msg.roomId].length })
     })
   })
@@ -75,7 +76,7 @@ io.on("connection", socket => {
     socketRooms.forEach(roomId => {
       subscriptions[roomId] = subscriptions[roomId].filter(s => s !== socket)
       subscriptions[roomId].forEach(s => {
-        s.emit("room:event", { roomId, type: "USER_LEFT", username })
+        s.emit("room:event", { roomId, type: "USER_LEFT", username, userId })
         s.emit("room:event", { roomId, type: "USER_COUNT", count: subscriptions[roomId].length })
       })
     })

@@ -1,6 +1,7 @@
 import THREE from "https://dev.jspm.io/npm:three@0.117.1"
 import { GLTFLoader } from "https://dev.jspm.io/npm:three@0.117.1/examples/jsm/loaders/GLTFLoader"
 import { OrbitControls } from "https://dev.jspm.io/npm:three@0.117.1/examples/jsm/controls/OrbitControls"
+import shortid from "https://dev.jspm.io/shortid"
 
 const USERNAMES = ["🐵", "🐒", "🦍", "🦧", "🐶", "🐕", "🦮", "🐕‍🦺", "🐩", "🐺", "🦊", "🦝", "🐱", "🐈", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌", "🐮", "🐂", "🐃", "🐄", "🐷", "🐖", "🐗", "🐽", "🐏", "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦏", "🦛", "🐭", "🐁", "🐀", "🐹", "🐰", "🐇", "🐿", "🦔", "🦇", "🐻", "🐨", "🐼", "🦥", "🦦", "🦨", "🦘", "🦡", "🦃", "🐔", "🐓", "🐣", "🐤", "🐥", "🐦", "🐧", "🕊", "🦅", "🦆", "🦢", "🦉", "🦩", "🦚", "🦜", "🐸", "🐊", "🐢", "🦎", "🐍", "🐲", "🐉", "🦕", "🦖", "🐳", "🐋", "🐬", "🐟", "🐠", "🐡", "🦈", "🐙", "🐚", "🐌", "🦋", "🐜", "🐝", "🐞", "🦗", "🕷", "🦂", "🦟", "🦠"]
 
@@ -88,6 +89,7 @@ const loader = new GLTFLoader()
 const socket = io()
 const roomId = window.location.pathname.slice(1)
 const username = USERNAMES[Math.floor(Math.random() * USERNAMES.length)]
+const userId = shortid.generate()
 
 const chess = new Chess()
 
@@ -196,10 +198,9 @@ const throttle = (fn, ms) => {
 }
 
 const emitPieceMoved = throttle(piece => {
-  console.log("trying to emit")
   socket.emit("room:event", {
     roomId,
-    username,
+    userId,
     type: "PIECE_MOVED",
     id: piece.name,
     x: piece.position.x,
@@ -338,7 +339,7 @@ const mouseup = e => {
       e.preventDefault()
 
       const message = CHAT_INPUT_EL.value
-      socket.emit("room:event", { roomId, type: "CHAT_MESSAGE", username, message })
+      socket.emit("room:event", { roomId, type: "CHAT_MESSAGE", username, userId, message })
 
       CHAT_INPUT_EL.value = ""
     })
@@ -349,9 +350,10 @@ const mouseup = e => {
       if (event.type === "USER_JOINED") {
         addMessage("🖥", `${event.username} joined`)
 
-        if (event.username !== username) {
+        if (event.userId !== userId) {
           socket.emit("room:event", {
             roomId,
+            userId,
             type: "INITIAL_STATE",
             piecePositions: chessPiecesGroup.children.map(piece => ({
               id: piece.name,
@@ -396,14 +398,14 @@ const mouseup = e => {
         }
       }
 
-      if (event.type === "PIECE_MOVED") {
+      if (event.type === "PIECE_MOVED" && event.userId !== userId) {
         const piece = chessPiecesGroup.children.find(p => p.name === event.id)
         piece.position.x = event.x
         piece.position.z = event.z
       }
     })
 
-    socket.emit("room:subscribe", { roomId, username })
+    socket.emit("room:subscribe", { roomId, username, userId })
   } catch (e) {
     console.error(e)
   }
