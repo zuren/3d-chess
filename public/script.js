@@ -182,18 +182,24 @@ const placeChessPieces = async () => {
   scene.add(chessPiecesGroup)
 }
 
-const debounce = (fn, ms) => {
+const throttle = (fn, ms) => {
   let timer = null
+  let throttled = false
   return (...args) => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), ms)
+    if (throttled) {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => fn(...args), ms)
+    } else {
+      fn(...args)
+    }
   }
 }
 
-const emitPieceMoved = debounce(piece => {
+const emitPieceMoved = throttle(piece => {
   console.log("trying to emit")
   socket.emit("room:event", {
     roomId,
+    username,
     type: "PIECE_MOVED",
     id: piece.name,
     x: piece.position.x,
@@ -254,7 +260,6 @@ const render = time => {
     if (overlay) {
       selectedPiece.position.x = overlay.point.x
       selectedPiece.position.z = overlay.point.z
-
       emitPieceMoved(selectedPiece)
     }
   }
