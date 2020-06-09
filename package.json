@@ -3,6 +3,7 @@
     "dev": "http-server public"
   },
   "devDependencies": {
-    "http-server": "^0.12.3"
+    "http-server": "^0.12.3",
+    "jest": "^26.0.1"
   }
 }
