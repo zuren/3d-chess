@@ -39,8 +39,8 @@ class Chess {
 
   start () {
     for (let c = 0; c < 2; c++) {
-      const colour = c === 0 ? "BLACK" : "WHITE"
-      const rowModifier = colour === "BLACK" ? n => 7 - n : n => n
+      const colour = c === 0 ? "WHITE" : "BLACK"
+      const rowModifier = colour === "WHITE" ? n => 7 - n : n => n
 
       for (let i = 0; i < 8; i++) {
         this.board.place(i, rowModifier(1), this.createPiece("PAWN", colour))
@@ -92,8 +92,11 @@ const createChessBoard = () => {
         (x + z) % 2 === 0 ? "yellow" : "blue"
 
       const geom = new THREE.BoxGeometry(1, 0.2, 1)
-      const mat = new THREE.MeshBasicMaterial({ color })
+      const mat = new THREE.MeshPhongMaterial({ color })
       const cube = new THREE.Mesh(geom, mat)
+
+      cube.castShadow = false
+      cube.receiveShadow = true
 
       chessBoardGroup.add(cube)
       // cube.position.set(x - 3.5, 0, z - 3.5)
@@ -104,7 +107,7 @@ const createChessBoard = () => {
   for (let x = 0; x < 24; x++) {
     for (let z = 0; z < 24; z++) {
       const geom = new THREE.BoxGeometry(1, 0.2, 1)
-      const mat = new THREE.MeshBasicMaterial({ color: "pink", opacity: 0.1, transparent: true })
+      const mat = new THREE.MeshPhongMaterial({ color: "pink", opacity: 0.1, transparent: true })
       const cube = new THREE.Mesh(geom, mat)
       // cube.name =
 
@@ -155,70 +158,35 @@ const placeChessPieces = async () => {
       && p.children[0].children[0].name === modelName)
 
     const piece = model.clone()
-    const color = tile.colour === "WHITE" ? "#fff" : "#000"
-    const mat = new THREE.MeshBasicMaterial({ color })
+    const color = tile.colour === "WHITE" ? "yellow" : "blue"
+    const mat = new THREE.MeshPhongMaterial({ color })
+
     piece.children[0].children[0].material = mat
-
-    // const modelName =
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 0 ? "Pawn" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 1 ? "Pawn002" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 2 ? "Pawn003" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 3 ? "Pawn004" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 4 ? "Pawn005" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 5 ? "Pawn006" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 6 ? "Pawn007" :
-    //   tile.colour === "BLACK" && tile.type === "PAWN" && x === 7 ? "Pawn008" :
-    //   null
-
-    // const model = pieces.find(p => p.name === modelName)
-    // if (!model) return
-
-    // const color = tile.colour === "BLACK" ? "blue" : "pink"
-    // const shape = tile.type === "PAWN" ? { width: 0.2, height: 0.5 } :
-    //   tile.type === "ROOK" ? { width: 0.5, height: 0.7 } :
-    //   tile.type === "HORSE" ? { width: 0.4, height: 0.9 } :
-    //   tile.type === "BISHOP" ? { width: 0.2, height: 1 } :
-    //   tile.type === "QUEEN" ? { width: 0.5, height: 1.3 } :
-    //   tile.type === "KING" ? { width: 0.4, height: 1.1 } : null
-
-    // const geom = new THREE.BoxGeometry(shape.width, shape.height / 2, shape.width)
-    // const mat = new THREE.MeshBasicMaterial({ color })
-    // const cube = new THREE.Mesh(geom, mat)
     piece.name = tile.id
     piece.scale.x = 0.009
     piece.scale.y = 0.009
     piece.scale.z = 0.009
+    piece.castShadow = true
+    piece.receiveShadow = true
 
     chessPiecesGroup.add(piece)
-    // cube.position.set(x - 3.5, 0.1 + shape.height / 4, z - 3.5)
     piece.position.set(x - 3.5, 0.1, z - 3.5)
-    console.log(piece)
+
+    const outlineMat = new THREE.MeshPhongMaterial({ color: 0x000000/*, side: THREE.BackSide*/ })
+    const outline = piece.clone()
+    outline.children[0].children[0].material = outlineMat
+    outline.position.set(piece.position)
+    outline.scale.x = 0.012
+    outline.scale.y = 0.012
+    outline.scale.z = 0.012
+    scene.add(outline)
   })
 
   scene.add(chessPiecesGroup)
 }
 
-const setup = async () => {
-  return new Promise((resolve, reject) => {
-    resolve()
-    // loader.load("/chess-pieces.gltf", gltf => {
-    //   chessPieces = gltf
-    //   resolve()
-    // }, undefined, err => reject(err))
-  })
-}
-
 let selectedPiece = null
 let clicked = false
-// let discarded = []
-
-// const renderDiscarded = () => {
-//   let discardedPosition = { x: -10, y: 0.2, z: 3 }
-
-//   discarded.forEach(d => {
-
-//   })
-// }
 
 const render = time => {
   requestAnimationFrame(render)
@@ -261,11 +229,9 @@ const render = time => {
 
   if (overlay && clicked) {
     if (selectedPiece) {
-      if (hoveredPiece) chessPiecesGroup.remove(hoveredPiece)
-
       selectedPiece.position.x = overlay.object.position.x
       selectedPiece.position.z = overlay.object.position.z
-      selectedPiece = null
+      selectedPiece = hoveredPiece ? hoveredPiece : null
     } else {
       selectedPiece = chessPiecesGroup.children.find(c => c.position.x === overlay.object.position.x
         && c.position.z === overlay.object.position.z)
@@ -304,7 +270,7 @@ const click = e => {
     // const panoGeom = new THREE.SphereBufferGeometry(500, 60, 40)
     // panoGeom.scale(-1, 1, 1)
     // const panoTex = new THREE.TextureLoader().load("29277159034_6279f549af_o.jpg")
-    // const panoMat = new THREE.MeshBasicMaterial({ map: panoTex })
+    // const panoMat = new THREE.MeshPhongMaterial({ map: panoTex })
     // const pano = new THREE.Mesh(panoGeom, panoMat)
     // pano.rotation.y = -Math.PI / 2
     // scene.add(pano)
@@ -312,12 +278,14 @@ const click = e => {
     renderer.setSize(WIDTH, HEIGHT)
     document.body.appendChild(renderer.domElement)
 
-    await setup()
-
     camera.position.x = 0
     camera.position.y = 8
     camera.position.z = 8
     controls.update()
+
+    // const light = new THREE.AmbientLight(0xffffff, 1)
+    const light = new THREE.HemisphereLight(0xFFFFFF, 0x000000, 1)
+    scene.add(light)
 
     console.log(scene.children)
     render(0)
