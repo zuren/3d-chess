@@ -87,16 +87,17 @@ const chessOverlayGroup = new THREE.Group()
 const createChessBoard = () => {
   for (let x = 0; x < 24; x++) {
     for (let z = 0; z < 24; z++) {
+      const isBoard = x >= 8 && x < 16 && z >= 8 && z < 16
       const color =
-        x < 8 || x >= 16 || z < 8 || z >= 16 ? "rgba(255, 130, 130)" :
-        (x + z) % 2 === 0 ? "yellow" : "blue"
+        !isBoard ? "rgba(255, 130, 130)" :
+        (x + z) % 2 === 0 ? "#fff" : "#000"
 
       const geom = new THREE.BoxGeometry(1, 0.2, 1)
-      const mat = new THREE.MeshPhongMaterial({ color })
+      const mat = new (isBoard ? THREE.MeshPhongMaterial : THREE.MeshBasicMaterial)({ color })
       const cube = new THREE.Mesh(geom, mat)
 
       cube.castShadow = false
-      cube.receiveShadow = true
+      cube.receiveShadow = isBoard
 
       chessBoardGroup.add(cube)
       // cube.position.set(x - 3.5, 0, z - 3.5)
@@ -107,12 +108,10 @@ const createChessBoard = () => {
   for (let x = 0; x < 24; x++) {
     for (let z = 0; z < 24; z++) {
       const geom = new THREE.BoxGeometry(1, 0.2, 1)
-      const mat = new THREE.MeshPhongMaterial({ color: "pink", opacity: 0.1, transparent: true })
+      const mat = new THREE.MeshBasicMaterial({ color: "pink", opacity: 0.1, transparent: true })
       const cube = new THREE.Mesh(geom, mat)
-      // cube.name =
 
       chessOverlayGroup.add(cube)
-      // cube.position.set(x - 3.5, 0, z - 3.5)
       cube.position.set(x - 3.5 - 8, 0, z - 3.5 - 8)
     }
   }
@@ -158,28 +157,19 @@ const placeChessPieces = async () => {
       && p.children[0].children[0].name === modelName)
 
     const piece = model.clone()
-    const color = tile.colour === "WHITE" ? "yellow" : "blue"
+    const color = tile.colour === "WHITE" ? "#fff" : "#333"
     const mat = new THREE.MeshPhongMaterial({ color })
 
     piece.children[0].children[0].material = mat
+    piece.children[0].children[0].castShadow = true
+    piece.children[0].children[0].receiveShadow = true
     piece.name = tile.id
     piece.scale.x = 0.009
     piece.scale.y = 0.009
     piece.scale.z = 0.009
-    piece.castShadow = true
-    piece.receiveShadow = true
 
     chessPiecesGroup.add(piece)
     piece.position.set(x - 3.5, 0.1, z - 3.5)
-
-    const outlineMat = new THREE.MeshPhongMaterial({ color: 0x000000/*, side: THREE.BackSide*/ })
-    const outline = piece.clone()
-    outline.children[0].children[0].material = outlineMat
-    outline.position.set(piece.position)
-    outline.scale.x = 0.012
-    outline.scale.y = 0.012
-    outline.scale.z = 0.012
-    scene.add(outline)
   })
 
   scene.add(chessPiecesGroup)
@@ -187,6 +177,8 @@ const placeChessPieces = async () => {
 
 let selectedPiece = null
 let clicked = false
+let isMouseDown = false
+let lastMousedown = 0
 
 const render = time => {
   requestAnimationFrame(render)
@@ -217,7 +209,7 @@ const render = time => {
 
   // if (hoveredPiece) hoveredPiece.position.y = 0.2
 
-  if (overlay) {
+  if (overlay && !isMouseDown) {
     // const tile = chessBoardGroup.children.find(c => c.position.x === overlay.object.position.x
     //     && c.position.z === overlay.object.position.z)
     overlay.object.material.opacity = 0.5
@@ -256,8 +248,14 @@ const mousemove = e => {
   mouse.y = -((event.clientY + window.scrollY - renderer.domElement.offsetTop) / HEIGHT) * 2 + 1
 }
 
-const click = e => {
-  clicked = true
+const mousedown = e => {
+  isMouseDown = true
+  lastMousedown = Date.now()
+}
+
+const mouseup = e => {
+  isMouseDown = false
+  clicked = Date.now() - lastMousedown < 200
 }
 
 ;(async () => {
@@ -281,17 +279,37 @@ const click = e => {
     camera.position.x = 0
     camera.position.y = 8
     camera.position.z = 8
+
+    controls.enablePan = false
+    controls.maxDistance = 12
+    controls.minDistance = 4
+    controls.maxPolarAngle = Math.PI * 0.4
     controls.update()
 
-    // const light = new THREE.AmbientLight(0xffffff, 1)
-    const light = new THREE.HemisphereLight(0xFFFFFF, 0x000000, 1)
-    scene.add(light)
+    // const ambient = new THREE.AmbientLight(0xFF0000, 1)
+    // scene.add(ambient)
+
+    const hemisphereLight = new THREE.HemisphereLight(0xFFFFFF, 0x000000, 1)
+    hemisphereLight.castShadow = true
+    scene.add(hemisphereLight)
+
+    // const lights = [0xFF0000, 0x00FF00, 0x0000FF]
+    // lights.forEach((colour, i) => {
+    //   const theta = (i + 1) / lights.length * Math.PI * 2
+    //   const dist = 3
+
+    //   const pointLight = new THREE.PointLight(colour, 2, 100)
+    //   pointLight.position.set(dist * Math.sin(theta), 5, dist * Math.cos(theta))
+    //   pointLight.castShadow = true
+    //   scene.add(pointLight)
+    // })
 
     console.log(scene.children)
     render(0)
 
     renderer.domElement.addEventListener("mousemove", mousemove)
-    renderer.domElement.addEventListener("click", click)
+    renderer.domElement.addEventListener("mousedown", mousedown)
+    renderer.domElement.addEventListener("mouseup", mouseup)
   } catch (e) {
     console.error(e)
   }
