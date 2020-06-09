@@ -1,1 +1,0 @@
-const Chess = require("./")
