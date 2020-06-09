@@ -339,9 +339,32 @@ const mouseup = e => {
     })
 
     socket.on("room:event", event => {
-      if (event.type === "USER_JOINED") addMessage("🖥", `${event.username} joined`)
       if (event.type === "USER_LEFT") addMessage("🖥", `${event.username} left`)
       if (event.type === "USER_COUNT") addMessage("🖥", `there are now ${event.count} being(s) here`)
+      if (event.type === "USER_JOINED") {
+        addMessage("🖥", `${event.username} joined`)
+
+        if (event.username !== username) {
+          socket.emit("room:event", {
+            roomId,
+            type: "INITIAL_STATE",
+            piecePositions: chessPiecesGroup.children.map(piece => ({
+              id: piece.name,
+              x: piece.position.x,
+              z: piece.position.z
+            }))
+          })
+        }
+      }
+
+      if (event.type === "INITIAL_STATE") {
+        event.piecePositions.forEach(pos => {
+          const piece = chessPiecesGroup.children.find(p => p.name === pos.id)
+          piece.position.x = pos.x
+          piece.position.z = pos.z
+        })
+      }
+
       if (event.type === "CHAT_MESSAGE") {
         addMessage(event.username, event.message)
 
