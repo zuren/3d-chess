@@ -55,8 +55,6 @@ class Chess {
       this.board.place(3, rowModifier(0), this.createPiece("QUEEN", colour))
       this.board.place(4, rowModifier(0), this.createPiece("KING", colour))
     }
-
-    console.log(this.board)
   }
 
   map (fn) {
@@ -71,7 +69,6 @@ class Chess {
 
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(FOV, ASPECT_RATIO, 0.1, 1000)
-// const camera = new THREE.OrthographicCamera(WIDTH / -2, WIDTH / 2, HEIGHT / 2, HEIGHT / -2, 0.1, 1000)
 const raycaster = new THREE.Raycaster()
 const renderer = new THREE.WebGLRenderer({ precision: "highp", antialias: true, alpha: true })
 const mouse = new THREE.Vector2()
@@ -100,7 +97,6 @@ const createChessBoard = () => {
       cube.receiveShadow = isBoard
 
       chessBoardGroup.add(cube)
-      // cube.position.set(x - 3.5, 0, z - 3.5)
       cube.position.set(x - 3.5 - 8, 0, z - 3.5 - 8)
     }
   }
@@ -131,9 +127,6 @@ const loadChessGltfScene = () => {
 const placeChessPieces = async () => {
   const chessScene = await loadChessGltfScene()
   const pieces = chessScene.scene.children[0].children[0].children[0].children[0].children
-
-  // pieces.forEach(p => chessPiecesGroup.add(p))
-  console.log(pieces)
 
   chess.map((tile, x, z) => {
     if (!tile) return
@@ -186,41 +179,22 @@ const render = time => {
   raycaster.setFromCamera(mouse, camera)
 
   const intersects = raycaster.intersectObjects(scene.children, true)
-  // console.log(intersects)
   const overlay = intersects.find(intersect => {
     return chessOverlayGroup.children.some(c => c.uuid === intersect.object.uuid)
   })
 
-  const hoveredPiece = overlay && chessPiecesGroup.children.find(c => c.position.x === overlay.object.position.x
-    && c.position.z === overlay.object.position.z)
+  chessOverlayGroup.children.forEach(c => c.material.opacity = 0)
 
-  // chessPiecesGroup.children.forEach(c => {
-  //   c.position.y = 0
-  // })
-
-  chessBoardGroup.children.forEach(c => {
-    c.position.y = 0
-  })
-
-  chessOverlayGroup.children.forEach(c => {
-    c.material.opacity = 0
-    c.position.y = 0
-  })
-
-  // if (hoveredPiece) hoveredPiece.position.y = 0.2
-
-  if (overlay && !isMouseDown) {
-    // const tile = chessBoardGroup.children.find(c => c.position.x === overlay.object.position.x
-    //     && c.position.z === overlay.object.position.z)
+  if (overlay && !isMouseDown)
     overlay.object.material.opacity = 0.5
-    // overlay.object.position.y = 0
-    // tile.position.y = 0.4
-
-    // if (hoveredPiece) hoveredPiece.position.y = 0.6
-  }
 
   if (overlay && clicked) {
     if (selectedPiece) {
+      const hoveredPiece = overlay && chessPiecesGroup.children.find(c =>
+        c.position.x === overlay.object.position.x &&
+        c.position.z === overlay.object.position.z
+      )
+
       selectedPiece.position.x = overlay.object.position.x
       selectedPiece.position.z = overlay.object.position.z
       selectedPiece = hoveredPiece ? hoveredPiece : null
@@ -231,8 +205,6 @@ const render = time => {
   }
 
   if (selectedPiece) {
-    // selectedPiece.position.y = 1
-
     if (overlay) {
       selectedPiece.position.x = overlay.point.x
       selectedPiece.position.z = overlay.point.z
@@ -265,14 +237,6 @@ const mouseup = e => {
     createChessBoard()
     await placeChessPieces()
 
-    // const panoGeom = new THREE.SphereBufferGeometry(500, 60, 40)
-    // panoGeom.scale(-1, 1, 1)
-    // const panoTex = new THREE.TextureLoader().load("29277159034_6279f549af_o.jpg")
-    // const panoMat = new THREE.MeshPhongMaterial({ map: panoTex })
-    // const pano = new THREE.Mesh(panoGeom, panoMat)
-    // pano.rotation.y = -Math.PI / 2
-    // scene.add(pano)
-
     renderer.setSize(WIDTH, HEIGHT)
     document.body.appendChild(renderer.domElement)
 
@@ -285,9 +249,6 @@ const mouseup = e => {
     controls.minDistance = 4
     controls.maxPolarAngle = Math.PI * 0.4
     controls.update()
-
-    // const ambient = new THREE.AmbientLight(0xFF0000, 1)
-    // scene.add(ambient)
 
     const hemisphereLight = new THREE.HemisphereLight(0xFFFFFF, 0x000000, 1)
     hemisphereLight.castShadow = true
@@ -304,7 +265,6 @@ const mouseup = e => {
     //   scene.add(pointLight)
     // })
 
-    console.log(scene.children)
     render(0)
 
     renderer.domElement.addEventListener("mousemove", mousemove)
